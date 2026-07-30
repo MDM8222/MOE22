@@ -15,7 +15,16 @@ const STEPS = [
   "Composing your report",
 ];
 
-export function LeadForm() {
+interface LeadFormProps {
+  /**
+   * Embed mode: the form is running inside an iframe on an external site
+   * (e.g. streamlineconnex.com). On success we break out of the iframe and
+   * open the report as a full page instead of rendering it cramped inside.
+   */
+  embed?: boolean;
+}
+
+export function LeadForm({ embed = false }: LeadFormProps) {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [email, setEmail] = useState("");
@@ -95,6 +104,20 @@ export function LeadForm() {
       }
 
       setStep(STEPS.length); // mark complete
+
+      if (embed) {
+        // Running inside an iframe on the marketing site — navigate the whole
+        // browser tab to the report so it renders full-page, not in the frame.
+        const reportUrl = `${window.location.origin}/report/${data.id}`;
+        try {
+          if (window.top && window.top !== window.self) {
+            window.top.location.assign(reportUrl);
+            return;
+          }
+        } catch {
+          /* cross-origin top blocked (sandboxed iframe) — fall through */
+        }
+      }
       router.push(`/report/${data.id}`);
     } catch {
       stopProgress();
